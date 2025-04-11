@@ -33,34 +33,24 @@ def send_with_length(sock, data):
     sock.sendall(length + data)
 
 def main():
-    print(f"Worker listening on port {PORT}...")
-
+    # Create a TCP/IP socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.bind((HOST, PORT))
-        server_socket.listen()
+        server_socket.bind((HOST, PORT))     # Bind to specified host and port
+        server_socket.listen()               # Start listening for incoming connections
 
         while True:
-            conn, addr = server_socket.accept()
+            conn, _ = server_socket.accept()  # Accept an incoming connection
             with conn:
-                print(f"Connected by master at {addr}")
+                raw_len = conn.recv(4)  # Receive 4 bytes indicating message length
+                total_len = struct.unpack('>I', raw_len)[0]  # Unpack length value
 
-                data = receive_with_length(conn)
-                if not data:
-                    print("No data received.")
-                    continue
+                data = conn.recv(total_len)  # Receive the full message
+                task_idx, row, B = pickle.loads(data)  # Deserialize task inputs
 
-                try:
-                    task_idx, row, B = pickle.loads(data)
-                except Exception as e:
-                    print(f"Error deserializing data: {e}")
-                    continue
+                result = np.dot(row, B)  # Perform row × matrix multiplication
 
-                print(f"Received task for row {task_idx}")
-                result = multiply(row, B)
-
-                result_data = pickle.dumps((task_idx, result))
-                send_with_length(conn, result_data)
-                print(f"Sent result for row {task_idx}")
+                result_data = pickle.dumps((task_idx, result))  # Serialize result
+                conn.sendall(struct.pack('>I', len(result_data)) + result_data)  # Send length + result
 
 if __name__ == "__main__":
     main()

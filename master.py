@@ -31,77 +31,40 @@ def receive_with_length(sock):
     return receive_all(sock, total_len)
 
 def send_task(ip, task_idx, row, B):
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((ip, PORT))
+    # Create and connect a TCP socket to the worker IP
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((ip, PORT))  # Establish connection to worker
 
-            # Serialize and send task
-            data = pickle.dumps((task_idx, row, B))
-            send_with_length(s, data)
+        # Serialize task data (index, row, full matrix B)
+        data = pickle.dumps((task_idx, row, B))
+        s.sendall(struct.pack('>I', len(data)) + data)  # Send message length + data
 
-            # Receive result
-            result_data = receive_with_length(s)
-            if result_data is None:
-                print(f"No response from {ip}")
-                return None, None
+        # Receive 4 bytes indicating the length of the response
+        raw_len = s.recv(4)
+        total_len = struct.unpack('>I', raw_len)[0]
 
-            task_idx, result_row = pickle.loads(result_data)
-            print(f"Received result for row {task_idx} from {ip}")
-            return task_idx, result_row
+        # Receive the full result data
+        result_data = s.recv(total_len)
 
-    except Exception as e:
-        print(f"Error communicating with {ip}: {e}")
-        return None, None
-
+        return pickle.loads(result_data)  # Deserialize and return result
+        
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 master.py ip1 ip2 ip3 ...")
-        sys.exit(1)
+    A = np.random.rand(20, 20)  # Generate random matrix A
+    B = np.random.rand(20, 20)  # Generate random matrix B
+    results = [None] * 20       # Initialize list for result rows
 
-    worker_ips = sys.argv[1:]
-    num_workers = len(worker_ips)
+    for row_idx in range(20):
+        ip = worker_ips[row_idx % num_workers]  # Assign row to worker (round-robin)
+        task_idx, result = send_task(ip, row_idx, A[row_idx], B)  # Send task to worker
 
-    A = np.random.rand(MATRIX_SIZE, MATRIX_SIZE)
-    B = np.random.rand(MATRIX_SIZE, MATRIX_SIZE)
-
-    print("[*] Matrix A shape:", A.shape)
-    print("[*] Matrix B shape:", B.shape)
-
-    results = [None] * MATRIX_SIZE
-
-    for row_idx in range(MATRIX_SIZE):
-        ip = worker_ips[row_idx % num_workers]  # Round-robin assignment
-        print(f"Sending row {row_idx} to worker {ip}")
-        task_idx, result = send_task(ip, row_idx, A[row_idx], B)
         if result is not None:
-            results[task_idx] = result
-        else:
-            print(f"Failed to compute row {row_idx}")
+            results[task_idx] = result  # Store received result at correct index
 
-    print("\nFinal Result (A x B):")
-    for i, row in enumerate(results):
-        if row is not None:
-            print(f"Row {i}: {row}")
-        else:
-            print(f"Row {i}: [ERROR: No result]")
-
+    # Reconstruct the final matrix C = A × B
     final_matrix = np.vstack([
-        r if r is not None else np.zeros(MATRIX_SIZE)
-        for r in results
+        row if row is not None else np.zeros(20)  # Fill missing rows with zeros (fallback)
+        for row in results
     ])
-    print("\nFull Matrix Result:")
-    print(final_matrix)
 
 if __name__ == "__main__":
     main()
-
-def send_task(ip, task_idx, row, B):
-    s.connect((ip, PORT))
-    data = pickle.dumps((task_idx, row, B))
-    s.sendall(struct.pack('>I', len(data)) + data)
-
-    raw_len = s.recv(4)
-    total_len = struct.unpack('>I', raw_len)[0]
-    result_data = s.recv(total_len)
-
-    return pickle.loads(result_data)
