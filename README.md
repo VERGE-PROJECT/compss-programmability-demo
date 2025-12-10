@@ -108,7 +108,7 @@ If a worker never responds, that row becomes a zero row in the final matrix (bas
 
 ## How to run the example **with PyCOMPSs** (Kubernetes + Helm)
 
-This version assumes you run `matrix_multiplication_compss.py` inside a COMPSs-enabled container on a Kubernetes cluster, using a Helm chart similar to the one in the `Helm-matmul` repository. ([GitHub][1])
+This version assumes you run `matrix_multiplication_compss.py` inside a COMPSs-enabled container on a Kubernetes cluster, using a Helm chart similar to the one in the `Helm-compss-app` repository. ([GitHub][1])
 
 ### 1. Prerequisites
 
@@ -137,11 +137,11 @@ You need:
    * Clone the chart repository (as in the example):
 
      ```bash
-     git clone https://gitlab.bsc.es/ppc-bsc/software/compss-matmul-helm.git
+     git clone https://github.com/VERGE-PROJECT/Helm-compss-app.git
      cd compss-matmul-helm
      ```
 
-     The GitHub repo `VERGE-PROJECT/Helm-matmul` documents this same chart and its usage. ([GitHub][1])
+     The GitHub repo `VERGE-PROJECT/Helm-compss-app` documents this same chart and its usage. ([GitHub][1])
 
 ---
 
@@ -206,7 +206,7 @@ From the chart directory (`compss-matmul-helm`):
      helm install compss-matmul --namespace compss-demo .
      ```
 
-   The Helm-matmul README shows the same pattern for installing the chart. ([GitHub][1])
+   The Helm-compss-app README shows the same pattern for installing the chart. ([GitHub][1])
 
 3. **Check that pods are running**
 
@@ -246,5 +246,5 @@ The example chart also supports:
 
 For a simple demo of programmability vs. manual sockets, you can ignore these and keep the default settings.
 
-[1]: https://github.com/VERGE-PROJECT/Helm-matmul "GitHub - VERGE-PROJECT/Helm-matmul"
+[1]: https://github.com/VERGE-PROJECT/Helm-compss-app.git "GitHub - VERGE-PROJECT/Helm-compss-app"
 
